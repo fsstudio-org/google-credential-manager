@@ -89,6 +89,8 @@ For maintainers:
 1. Update the `version` in `package.json`. It drives the podspec version too.
 2. In `CHANGELOG.md`, rename the "Unreleased" heading to the new version and date, then add a fresh empty "Unreleased" heading above it.
 3. Commit and push to `main`, and wait for CI to pass. Check what the package will contain with `pnpm pack --dry-run`.
-4. Tag the release: `git tag v<version> && git push --tags`. The [release workflow](.github/workflows/release.yml) checks that the tag matches `package.json`, runs lint, typecheck, tests and the build, then publishes to npm with provenance.
+4. On GitHub, open Actions → Release → Run workflow, on `main`. The [release workflow](.github/workflows/release.yml) only runs when you start it. It refuses unless CI passed on that exact commit, the version is new, and `CHANGELOG.md` has an entry for it. It then runs lint, typecheck, tests and the build, publishes to npm with provenance, and creates the `v<version>` tag and a GitHub Release from the changelog entry.
+
+If only the last step (tag and GitHub Release) fails, create the release by hand rather than re-running the workflow, because npm refuses a version that is already published.
 
 The workflow authenticates with npm trusted publishing, so there is no npm token to manage. It is set up once per package on npmjs.com (package Settings → Trusted publisher → GitHub Actions: owner `fsstudio-org`, repository `google-credential-manager`, workflow `release.yml`), which needs the package to exist already, so the very first version has to be published by hand with `pnpm publish`.

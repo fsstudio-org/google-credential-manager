@@ -1,26 +1,66 @@
-# Publishes to npm when a version tag (v0.2.0, ...) is pushed.
+# Publishes the version in package.json to npm. Start it by hand: Actions ->
+# Release -> Run workflow, on `main`.
+#
+# It refuses to run unless CI passed on this exact commit, so a red native build
+# cannot be published. After publishing it creates the vX.Y.Z tag and a GitHub
+# Release from the CHANGELOG.
 #
 # Authentication is npm trusted publishing (OIDC): there is no npm token or
 # secret. It is configured once, per package, on npmjs.com (package Settings ->
 # Trusted publisher -> GitHub Actions: owner `fsstudio-org`, repository
 # `google-credential-manager`, workflow `release.yml`). That needs the package to
-# exist already, so the first release (0.1.0) is published by hand.
+# exist already, so the first release (0.1.0) was published by hand.
 name: Release
 
 on:
-  push:
-    tags: ['v*']
+  workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write # creates the tag and the GitHub Release
+  actions: read # lets the gate look up the CI run for this commit
   id-token: write # lets npm verify this workflow's identity (OIDC)
 
 jobs:
   publish:
     name: Publish to npm
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v7
+
+      - name: Read the version
+        id: version
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      # A successful CI run means every job in it succeeded: none is allowed to fail.
+      - name: Require a green CI run for this commit
+        run: |
+          passed=$(gh run list --workflow ci.yml --commit "$GITHUB_SHA" \
+            --status success --json databaseId --jq length)
+          if [ "$passed" -lt 1 ]; then
+            echo "No successful CI run for $GITHUB_SHA. Wait for CI to finish and pass, then run this again." >&2
+            exit 1
+          fi
+
+      - name: Check the version is new and has release notes
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" >/dev/null 2>&1; then
+            echo "Tag v$VERSION already exists. Bump the version in package.json first." >&2
+            exit 1
+          fi
+          awk -v v="$VERSION" '
+            $0 ~ "^## \\[" v "\\]" { found = 1; next }
+            /^## \[/ { found = 0 }
+            found
+          ' CHANGELOG.md > release-notes.md
+          if ! grep -q '[^[:space:]]' release-notes.md; then
+            echo "CHANGELOG.md has no entry under ## [$VERSION]." >&2
+            exit 1
+          fi
 
       - uses: pnpm/action-setup@v6
 
@@ -31,14 +71,6 @@ jobs:
           registry-url: https://registry.npmjs.org
 
       - run: pnpm install --frozen-lockfile
-
-      - name: Check the tag matches package.json
-        run: |
-          version=$(node -p "require('./package.json').version")
-          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
-            echo "Tag $GITHUB_REF_NAME does not match package.json version $version" >&2
-            exit 1
-          fi
 
       - run: pnpm lint
 
@@ -54,3 +86,15 @@ jobs:
       # Lint, typecheck, test and build already ran above, so skip prepublishOnly.
       # Provenance is attached automatically for a public repo and package.
       - run: npm publish --ignore-scripts
+
+      # After the publish, so a failed publish leaves no tag behind. If this step
+      # alone fails, create the release by hand; do not re-run the workflow, since
+      # npm will refuse a version that is already published.
+      - name: Tag and create the GitHub Release
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "v$VERSION" \
+            --target "$GITHUB_SHA" \
+            --title "v$VERSION" \
+            --notes-file release-notes.md
