@@ -6,6 +6,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-01
+
+### Fixed
+
+- Android: the module did not compile against React Native 0.86
+  (`'reject' overrides nothing`). RN 0.86 declares `Promise.reject`'s `code`
+  parameter as `String?` where 0.83 declares `String`, and Kotlin only accepts an
+  override with identical parameter types, so the debug-build rejection logger
+  could not compile on both. It is now a dynamic proxy, which does not name the
+  signature.
+
 ## [0.1.1] - 2026-10-01
 
 ### Fixed

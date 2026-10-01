@@ -36,6 +36,9 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import org.json.JSONArray
 import org.json.JSONObject
+import java.lang.reflect.InvocationHandler
+import java.lang.reflect.InvocationTargetException
+import java.lang.reflect.Proxy
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
@@ -139,24 +142,39 @@ class GoogleCredentialManagerLoginModule(
    * the only place a developer looks. Wrapping once at the method entry keeps
    * every reject call site a literal error code, which docs.test.tsx scans for.
    */
-  private inner class LoggingPromise(private val delegate: Promise) : Promise by delegate {
-    override fun reject(code: String, message: String?) {
-      logRejection(code, message, null)
-      delegate.reject(code, message)
-    }
-
-    override fun reject(code: String, throwable: Throwable?) {
-      logRejection(code, null, throwable)
-      delegate.reject(code, throwable)
-    }
-
-    override fun reject(code: String, message: String?, throwable: Throwable?) {
-      logRejection(code, message, throwable)
-      delegate.reject(code, message, throwable)
-    }
+  private fun Promise.logged(): Promise {
+    if (!isDebuggableHost) return this
+    val delegate = this
+    // A dynamic proxy rather than `Promise by delegate` plus overrides: React
+    // Native 0.83 declares `reject(code: String, …)` and 0.86 declares
+    // `reject(code: String?, …)`, and Kotlin only accepts an override whose
+    // parameter types match exactly, so no hand-written override compiles on both.
+    return Proxy.newProxyInstance(
+      Promise::class.java.classLoader,
+      arrayOf(Promise::class.java),
+      InvocationHandler { _, method, args ->
+        if (method.name == "reject" && args != null) logRejectCall(method.parameterTypes, args)
+        try {
+          method.invoke(delegate, *(args ?: emptyArray()))
+        } catch (e: InvocationTargetException) {
+          throw e.targetException
+        }
+      },
+    ) as Promise
   }
 
-  private fun Promise.logged(): Promise = if (isDebuggableHost) LoggingPromise(this) else this
+  /** Logs only the (code, message), (code, throwable) and (code, message, throwable) overloads. */
+  private fun logRejectCall(types: Array<Class<*>>, args: Array<out Any?>) {
+    val code = args[0] as? String ?: return
+    when {
+      args.size == 2 && types[1] == String::class.java ->
+        logRejection(code, args[1] as String?, null)
+      args.size == 2 && types[1] == Throwable::class.java ->
+        logRejection(code, null, args[1] as Throwable?)
+      args.size == 3 && types[1] == String::class.java && types[2] == Throwable::class.java ->
+        logRejection(code, args[1] as String?, args[2] as Throwable?)
+    }
+  }
 
   /**
    * Messages carry no tokens or emails; the throwable is Google's own exception.
