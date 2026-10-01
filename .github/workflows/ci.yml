@@ -77,7 +77,7 @@ jobs:
           EXPO_PUBLIC_IOS_CLIENT_ID: ci-placeholder.apps.googleusercontent.com
         run: npx expo prebuild --platform android --clean
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
       - name: Assemble debug APK
         working-directory: example/android
