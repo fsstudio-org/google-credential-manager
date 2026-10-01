@@ -103,14 +103,19 @@ jobs:
         working-directory: example
         run: pnpm install --no-frozen-lockfile
 
-      # Also runs `pod install`, which is where the GoogleSignIn ~> 9.0 pin and
-      # the podspec are exercised.
+      # `--no-install` because prebuild reports a failed `pod install` as a warning
+      # and carries on, which leaves no .xcworkspace and a misleading error later.
       - name: Prebuild example
         working-directory: example
         env:
           EXPO_PUBLIC_WEB_CLIENT_ID: ci-placeholder.apps.googleusercontent.com
           EXPO_PUBLIC_IOS_CLIENT_ID: ci-placeholder.apps.googleusercontent.com
-        run: npx expo prebuild --platform ios --clean
+        run: npx expo prebuild --platform ios --clean --no-install
+
+      # This is where the GoogleSignIn ~> 9.0 pin and the podspec are exercised.
+      - name: Install pods
+        working-directory: example/ios
+        run: pod install
 
       # Compile only, for the simulator and unsigned. The workspace and scheme
       # names come from the app name, so they are discovered rather than spelled.
