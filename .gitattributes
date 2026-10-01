@@ -1,0 +1,9 @@
+# Normalize all text files to LF, in the repo and the working tree.
+# (Development is Linux-only; this keeps Windows checkouts from reintroducing CRLF.)
+* text=auto eol=lf
+
+# Never normalize Xcode project files.
+*.pbxproj -text
+
+# Windows batch scripts must stay CRLF.
+*.bat text eol=crlf

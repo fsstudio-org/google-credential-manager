@@ -1,0 +1,82 @@
+# OSX
+#
+.DS_Store
+
+# XDE
+.expo/
+
+# VSCode
+.vscode/
+jsconfig.json
+
+# Xcode
+#
+build/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata
+*.xccheckout
+*.moved-aside
+DerivedData
+*.hmap
+*.ipa
+*.xcuserstate
+project.xcworkspace
+**/.xcode.env.local
+
+# Android/IJ
+#
+.classpath
+.cxx
+.gradle
+.idea
+.project
+.settings
+local.properties
+android.iml
+
+# Cocoapods
+#
+example/ios/Pods
+
+# Ruby
+example/vendor/
+
+# node.js
+#
+node_modules/
+.jest/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Secrets and credentials — this library deals in OAuth, so keep them out by default.
+# Only the .env.example templates are tracked.
+.env
+.env.*
+!.env.example
+google-services.json
+GoogleService-Info.plist
+*.keystore
+*.jks
+*.p12
+*.pem
+
+# Package tarballs from `pnpm pack`
+*.tgz
+
+# Build output from `bob build` (published, never committed)
+lib/
+
+# Local tool state
+.claude/settings.local.json
+
+# React Native Codegen
+ios/generated
+android/generated

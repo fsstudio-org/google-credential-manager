@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/fsstudio-org/google-credential-manager/security/advisories/new
+    about: Please report security problems privately, not as a public issue. See SECURITY.md.
+  - name: Google Cloud OAuth setup
+    url: https://developer.android.com/identity/sign-in/credential-manager-siwg
+    about: Client IDs, SHA-1 fingerprints and consent screens are Google's setup, not this library's.

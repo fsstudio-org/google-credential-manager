@@ -1,0 +1,6 @@
+# Makes example/ its own pnpm project root. Without this file pnpm walks up to
+# the repo root's pnpm-workspace.yaml, treats that as the workspace root, and
+# `pnpm install` inside example/ silently installs the ROOT project instead:
+# no example/node_modules and no example/pnpm-lock.yaml, then `expo prebuild`
+# fails for want of `expo`. The empty list declares no workspace members.
+packages: []

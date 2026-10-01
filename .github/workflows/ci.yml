@@ -1,0 +1,129 @@
+# What this proves: the JS layer passes its tests, and both native modules compile
+# inside a host app (Android on Linux, iOS on macOS).
+#
+# What it cannot prove: that signing in works. That needs a real Google account
+# completing a consent screen, which a runner cannot do, and putting an account's
+# credentials in CI secrets would break Google's terms and get it locked. Device
+# behaviour is verified by hand — see docs/manual-verification.md.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  js:
+    name: Lint, typecheck, test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm lint
+
+      - run: pnpm typecheck
+
+      - run: pnpm test
+
+      # `pnpm install` above already ran `prepare` (bob build), so a broken build
+      # fails that step first. This names the build as its own step.
+      - run: pnpm build
+
+  android:
+    name: Build Android
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - run: pnpm install --frozen-lockfile
+
+      # The Kotlin only compiles inside a host app: codegen emits the TurboModule
+      # spec base class at app build time, so `gradle assemble` in android/ can't
+      # work on its own.
+      - name: Install example dependencies
+        working-directory: example
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Prebuild example
+        working-directory: example
+        env:
+          EXPO_PUBLIC_WEB_CLIENT_ID: ci-placeholder.apps.googleusercontent.com
+          EXPO_PUBLIC_IOS_CLIENT_ID: ci-placeholder.apps.googleusercontent.com
+        run: npx expo prebuild --platform android --clean
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Assemble debug APK
+        working-directory: example/android
+        run: ./gradlew assembleDebug --no-daemon
+
+  ios:
+    name: Build iOS
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install example dependencies
+        working-directory: example
+        run: pnpm install --no-frozen-lockfile
+
+      # Also runs `pod install`, which is where the GoogleSignIn ~> 9.0 pin and
+      # the podspec are exercised.
+      - name: Prebuild example
+        working-directory: example
+        env:
+          EXPO_PUBLIC_WEB_CLIENT_ID: ci-placeholder.apps.googleusercontent.com
+          EXPO_PUBLIC_IOS_CLIENT_ID: ci-placeholder.apps.googleusercontent.com
+        run: npx expo prebuild --platform ios --clean
+
+      # Compile only, for the simulator and unsigned. The workspace and scheme
+      # names come from the app name, so they are discovered rather than spelled.
+      - name: Build for the iOS simulator
+        working-directory: example/ios
+        run: |
+          workspace=$(ls -d *.xcworkspace)
+          scheme="${workspace%.xcworkspace}"
+          xcodebuild \
+            -workspace "$workspace" \
+            -scheme "$scheme" \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build
