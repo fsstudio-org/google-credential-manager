@@ -131,6 +131,13 @@ of them.
       reversed client ID (`com.googleusercontent.apps.<id>`) is in
       `Info.plist` under `CFBundleURLSchemes`. It must match `iosClientId` —
       the web client ID will not work.
+- [ ] iOS: `pod install` succeeds. GoogleSignIn 9 needs modular headers for
+      `GoogleUtilities`, `RecaptchaInterop` and `AppCheckCore`; the Expo config
+      plugin adds them at prebuild, a bare app adds
+      `pod '<name>', :modular_headers => true` for each inside its Podfile
+      target (unless it already uses `use_frameworks!` or `use_modular_headers!`).
+      Without them `pod install` fails with "Swift pods cannot yet be integrated
+      as static libraries".
 - [ ] Expo: the config plugin is in `app.json` and `npx expo prebuild` has been
       re-run since the client IDs last changed. They are baked in at prebuild.
 - [ ] The app is a development/release build, not Expo Go.

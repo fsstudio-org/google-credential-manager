@@ -5,22 +5,43 @@
 const {
   createRunOncePlugin,
   withInfoPlist,
+  withPodfile,
   WarningAggregator,
 } = require('expo/config-plugins');
 
 const pkg = require('../package.json');
+const { addModularHeaders } = require('./modularHeaders');
 const {
   reversedClientId,
   GOOGLE_CLIENT_SUFFIX,
 } = require('./reversedClientId');
 
+/** Lets `pod install` integrate GoogleSignIn's Swift dependencies. */
+const withModularHeaders = (config) =>
+  withPodfile(config, (cfg) => {
+    const updated = addModularHeaders(cfg.modResults.contents);
+    if (updated === null) {
+      WarningAggregator.addWarningIOS(
+        pkg.name,
+        'Could not find a `target` block in the Podfile, so modular headers were ' +
+          'not enabled for GoogleUtilities, RecaptchaInterop and AppCheckCore. ' +
+          '`pod install` will fail until you add them by hand — see the README.'
+      );
+    } else {
+      cfg.modResults.contents = updated;
+    }
+    return cfg;
+  });
+
 /**
- * Registers the reversed-client-ID URL scheme on iOS. Android needs nothing:
- * Credential Manager identifies the app by package name and signing certificate,
- * so there is no manifest entry to inject.
+ * Prepares the iOS project: enables modular headers for GoogleSignIn's Swift
+ * dependencies and registers the reversed-client-ID URL scheme. Android needs
+ * nothing: Credential Manager identifies the app by package name and signing
+ * certificate, so there is no manifest entry to inject.
  */
-const withGoogleCredentialManager = (config, props = {}) => {
+const withGoogleCredentialManager = (baseConfig, props = {}) => {
   const { iosClientId, webClientId } = props;
+  const config = withModularHeaders(baseConfig);
 
   if (!iosClientId) {
     WarningAggregator.addWarningIOS(

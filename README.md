@@ -92,13 +92,28 @@ Add the config plugin to your `app.json` / `app.config.js`:
 }
 ```
 
-Then `npx expo prebuild`. The plugin registers the reversed-client-ID URL scheme in `Info.plist` and records the client IDs there. Android needs nothing — Credential Manager identifies your app by package name and signing certificate, not by a manifest entry.
+Then `npx expo prebuild`. The plugin registers the reversed-client-ID URL scheme in `Info.plist`, records the client IDs there, and enables modular headers for the Swift pods GoogleSignIn depends on (see [Bare React Native](#bare-react-native) for why). Android needs nothing — Credential Manager identifies your app by package name and signing certificate, not by a manifest entry.
 
 Re-run `prebuild` after changing the client IDs; they're baked in at prebuild time. The plugin only ever adds a scheme, so after *changing* `iosClientId` use `npx expo prebuild --clean` or the old scheme stays registered.
 
 ### Bare React Native
 
-Android needs no manual setup. On iOS, run `pod install` and add the URL scheme yourself:
+Android needs no manual setup. On iOS you need two things before `pod install`.
+
+**1. Modular headers for GoogleSignIn's Swift dependencies.** GoogleSignIn 9 depends on a Swift pod (`AppCheckCore`) that imports `GoogleUtilities` and `RecaptchaInterop`, which do not define modules. In a static-library build, which is the default, `pod install` then fails with "The following Swift pods cannot yet be integrated as static libraries". Add these lines inside your app target in `ios/Podfile`:
+
+```ruby
+target 'YourApp' do
+  pod 'GoogleUtilities', :modular_headers => true
+  pod 'RecaptchaInterop', :modular_headers => true
+  pod 'AppCheckCore', :modular_headers => true
+  # ... the rest of your target
+end
+```
+
+If your app already uses `use_frameworks!` or `use_modular_headers!`, you can skip this. If it also uses react-native-firebase, check [its notes on static libraries](https://github.com/invertase/react-native-firebase/issues/6332) first, because enabling modular headers can conflict with Firebase pods.
+
+**2. The URL scheme**, added to `Info.plist`:
 
 ```xml
 <!-- ios/<YourApp>/Info.plist -->

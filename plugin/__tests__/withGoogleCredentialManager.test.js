@@ -1,6 +1,7 @@
 // `expo` is only a peer dependency and is not installed here, so the plugin API
 // is replaced with the smallest stand-in that still runs the plugin's own logic:
-// `withInfoPlist` hands the callback a plist and returns the mutated config.
+// `withInfoPlist` and `withPodfile` hand the callback the plist or the Podfile
+// and return the mutated config.
 const mockAddWarningIOS = jest.fn();
 
 jest.mock(
@@ -9,6 +10,8 @@ jest.mock(
     createRunOncePlugin: (plugin) => plugin,
     withInfoPlist: (config, action) =>
       action({ ...config, modResults: config.plist }),
+    withPodfile: (config, action) =>
+      action({ ...config, modResults: config.podfile }),
     WarningAggregator: {
       addWarningIOS: (...args) => mockAddWarningIOS(...args),
     },
@@ -20,11 +23,20 @@ const withGoogleCredentialManager = require('../withGoogleCredentialManager');
 
 const IOS_CLIENT_ID = '123-ios.apps.googleusercontent.com';
 const SCHEME = 'com.googleusercontent.apps.123-ios';
+const PODFILE =
+  "platform :ios, '15.1'\n\ntarget 'MyApp' do\n  use_expo_modules!\nend\n";
 
 /** Runs the plugin over a plist and returns the plist it produced. */
-function run(props, plist = {}) {
-  const config = withGoogleCredentialManager({ plist }, props);
+function run(props, plist = {}, podfile = { contents: PODFILE }) {
+  const config = withGoogleCredentialManager({ plist, podfile }, props);
   return config.modResults;
+}
+
+/** Runs the plugin over a Podfile and returns the Podfile it produced. */
+function runPodfile(props, contents) {
+  const podfile = { contents };
+  run(props, {}, podfile);
+  return podfile.contents;
 }
 
 describe('withGoogleCredentialManager', () => {
@@ -98,14 +110,54 @@ describe('withGoogleCredentialManager', () => {
     expect(plist.GIDServerClientID).toBe('456-web.apps.googleusercontent.com');
   });
 
-  it('warns and leaves the config untouched when iosClientId is missing', () => {
+  it('warns and leaves the plist untouched when iosClientId is missing', () => {
     const plist = {};
-    const config = withGoogleCredentialManager({ plist }, {});
+    withGoogleCredentialManager({ plist, podfile: { contents: PODFILE } }, {});
 
     expect(mockAddWarningIOS).toHaveBeenCalledTimes(1);
     expect(mockAddWarningIOS.mock.calls[0][1]).toContain('iosClientId');
-    expect(config.modResults).toBeUndefined();
     expect(plist).toEqual({});
+  });
+
+  it('still enables modular headers when iosClientId is missing', () => {
+    const contents = runPodfile({}, PODFILE);
+
+    expect(contents).toContain(
+      "pod 'GoogleUtilities', :modular_headers => true"
+    );
+  });
+
+  it('enables modular headers for the Swift pods GoogleSignIn pulls in', () => {
+    const contents = runPodfile({ iosClientId: IOS_CLIENT_ID }, PODFILE);
+
+    expect(contents).toContain(
+      "pod 'GoogleUtilities', :modular_headers => true"
+    );
+    expect(contents).toContain(
+      "pod 'RecaptchaInterop', :modular_headers => true"
+    );
+    expect(contents).toContain("pod 'AppCheckCore', :modular_headers => true");
+  });
+
+  it('puts the pods inside the app target', () => {
+    const contents = runPodfile({ iosClientId: IOS_CLIENT_ID }, PODFILE);
+
+    expect(contents.indexOf('GoogleUtilities')).toBeGreaterThan(
+      contents.indexOf("target 'MyApp' do")
+    );
+    expect(contents.indexOf('GoogleUtilities')).toBeLessThan(
+      contents.lastIndexOf('end')
+    );
+  });
+
+  it('warns instead of failing when the Podfile has no target block', () => {
+    const contents = runPodfile(
+      { iosClientId: IOS_CLIENT_ID },
+      'platform :ios\n'
+    );
+
+    expect(contents).toBe('platform :ios\n');
+    expect(mockAddWarningIOS.mock.calls[0][1]).toContain('target');
   });
 
   it('throws, naming the expected suffix, for something that is not a client ID', () => {
