@@ -862,7 +862,7 @@ class GoogleCredentialManagerLoginModule(
   }
 
   private fun getSafeActivity(): Activity? =
-    (currentActivity ?: reactApplicationContext.currentActivity)
+    reactApplicationContext.currentActivity
       ?.takeUnless { it.isFinishing || it.isDestroyed }
 
   /** The Authorization API reports its account only through this deprecated type. */

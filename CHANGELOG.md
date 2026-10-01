@@ -6,6 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Android: stopped reading the module's own `currentActivity`, which React Native
+  deprecated in 0.80 and will remove. The activity now comes from
+  `reactApplicationContext.currentActivity`, which the code already fell back to.
+
 ## [0.1.2] - 2026-10-01
 
 ### Fixed
