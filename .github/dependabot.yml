@@ -7,3 +7,8 @@ updates:
       interval: weekly
     commit-message:
       prefix: ci
+    ignore:
+      # v6 moves Gradle caching into a proprietary component that needs Gradle's
+      # Terms of Use accepted in CI. Stay on the MIT-licensed v5.
+      - dependency-name: gradle/actions
+        update-types: ['version-update:semver-major']

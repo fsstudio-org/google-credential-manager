@@ -1,6 +1,6 @@
 {
   "name": "@fsstudio-org/google-credential-manager",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Sign in with Google for React Native — Android Jetpack Credential Manager, iOS GoogleSignIn SDK, one API",
   "author": "funstuff <contact@funstuff.studio> (https://funstuff.studio)",
   "repository": {
