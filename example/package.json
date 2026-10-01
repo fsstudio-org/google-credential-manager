@@ -1,0 +1,28 @@
+{
+  "name": "google-credential-manager-example",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "start": "expo start --dev-client",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "prebuild": "expo prebuild --clean"
+  },
+  "dependencies": {
+    "@fsstudio-org/google-credential-manager": "file:..",
+    "buffer": "^6.0.3",
+    "expo": "~55.0.0",
+    "expo-constants": "~55.0.17",
+    "expo-dev-client": "~55.0.40",
+    "expo-status-bar": "~55.0.6",
+    "react": "19.2.0",
+    "react-native": "0.83.10",
+    "react-native-safe-area-context": "~5.10.0",
+    "react-native-svg": "15.12.1"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.0",
+    "typescript": "~5.9.2"
+  }
+}

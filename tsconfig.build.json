@@ -1,0 +1,15 @@
+{
+  // Used by `bob build` (the typescript target) to emit lib/typescript. `exclude`
+  // replaces the base list rather than merging with it, so the base entries are
+  // repeated here. bob's `exclude` option only filters the babel targets; tsc
+  // needs its own exclusions or test declarations would ship.
+  "extends": "./tsconfig",
+  "exclude": [
+    "**/__tests__/**",
+    "**/__mocks__/**",
+    "**/__fixtures__/**",
+    "example",
+    "lib",
+    "node_modules"
+  ]
+}

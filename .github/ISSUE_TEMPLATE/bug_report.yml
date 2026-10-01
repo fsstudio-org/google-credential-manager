@@ -1,0 +1,80 @@
+name: Bug report
+description: Something doesn't work
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The iOS path has not been tested on a device yet, so iOS reports are
+        expected and welcome — don't assume it's your setup.
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Android
+        - iOS
+        - Both
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Library version
+      placeholder: 0.1.0
+    validations:
+      required: true
+
+  - type: input
+    id: rn-version
+    attributes:
+      label: React Native version
+      placeholder: 0.83.10 (Expo SDK 55)
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you expected, and what you got instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Your configure() call
+      description: Redact the client IDs — the shape is what matters.
+      render: ts
+      placeholder: |
+        GoogleCredentialLogin.configure({
+          webClientId: '…',
+          iosClientId: '…',
+        });
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error code and stack trace
+      description: |
+        The `.code` from `GoogleCredentialLoginError`, plus `adb logcat -s
+        ReactNativeJS:V GoogleCredentialMgr:V` output, or the Xcode console. In a
+        development build the `[google-credential-manager]` line already holds
+        the cause and fix. Never paste tokens.
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Setup checks
+      description: Most reports turn out to be one of these. Worth confirming.
+      options:
+        - label: The SHA-1 of the keystore I'm signing with is registered on the Android OAuth client
+        - label: I'm passing the **web** client ID as `webClientId` (not the Android or iOS one)
+        - label: On iOS, my `iosClientId` matches the reversed URL scheme in Info.plist
+        - label: I'm using a development build, not Expo Go

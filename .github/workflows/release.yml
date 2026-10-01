@@ -1,0 +1,56 @@
+# Publishes to npm when a version tag (v0.2.0, ...) is pushed.
+#
+# Authentication is npm trusted publishing (OIDC): there is no npm token or
+# secret. It is configured once, per package, on npmjs.com (package Settings ->
+# Trusted publisher -> GitHub Actions: owner `fsstudio-org`, repository
+# `google-credential-manager`, workflow `release.yml`). That needs the package to
+# exist already, so the first release (0.1.0) is published by hand.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  id-token: write # lets npm verify this workflow's identity (OIDC)
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Check the tag matches package.json
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match package.json version $version" >&2
+            exit 1
+          fi
+
+      - run: pnpm lint
+
+      - run: pnpm typecheck
+
+      - run: pnpm test
+
+      - run: pnpm build
+
+      # Trusted publishing needs npm >= 11.5.1; the npm bundled with Node 22.20 is 10.x.
+      - run: npm install -g npm@^11.5.1
+
+      # Lint, typecheck, test and build already ran above, so skip prepublishOnly.
+      # Provenance is attached automatically for a public repo and package.
+      - run: npm publish --ignore-scripts

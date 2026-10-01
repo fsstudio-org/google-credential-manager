@@ -1,0 +1,162 @@
+{
+  "name": "@fsstudio-org/google-credential-manager",
+  "version": "0.1.0",
+  "description": "Sign in with Google for React Native — Android Jetpack Credential Manager, iOS GoogleSignIn SDK, one API",
+  "author": "funstuff <contact@funstuff.studio> (https://funstuff.studio)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fsstudio-org/google-credential-manager.git"
+  },
+  "homepage": "https://github.com/fsstudio-org/google-credential-manager#readme",
+  "bugs": "https://github.com/fsstudio-org/google-credential-manager/issues",
+  "main": "./lib/module/index.js",
+  "types": "./lib/typescript/src/index.d.ts",
+  "exports": {
+    ".": {
+      "source": "./src/index.tsx",
+      "types": "./lib/typescript/src/index.d.ts",
+      "default": "./lib/module/index.js"
+    },
+    "./button": {
+      "source": "./src/GoogleSignInButton.tsx",
+      "types": "./lib/typescript/src/GoogleSignInButton.d.ts",
+      "default": "./lib/module/GoogleSignInButton.js"
+    },
+    "./app.plugin.js": "./app.plugin.js",
+    "./package.json": "./package.json"
+  },
+  "typesVersions": {
+    "*": {
+      "button": [
+        "./lib/typescript/src/GoogleSignInButton.d.ts"
+      ]
+    }
+  },
+  "files": [
+    "CHANGELOG.md",
+    "AGENTS.md",
+    "lib",
+    "src",
+    "android",
+    "ios",
+    "plugin",
+    "app.plugin.js",
+    "*.podspec",
+    "!ios/build",
+    "!android/build",
+    "!android/gradle",
+    "!android/gradlew",
+    "!android/gradlew.bat",
+    "!android/local.properties",
+    "!**/__tests__",
+    "!**/__fixtures__",
+    "!**/__mocks__",
+    "!**/.*"
+  ],
+  "scripts": {
+    "test": "jest",
+    "build": "bob build",
+    "prepare": "bob build",
+    "clean": "del-cli android/build lib",
+    "example:sync": "pnpm build && pnpm --dir example install",
+    "typecheck": "tsc",
+    "lint": "eslint \"**/*.{js,ts,tsx}\"",
+    "prepublishOnly": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+  },
+  "keywords": [
+    "react-native",
+    "ios",
+    "android",
+    "expo",
+    "google",
+    "google-sign-in",
+    "sign-in-with-google",
+    "credential-manager",
+    "androidx-credentials",
+    "oauth",
+    "openid-connect",
+    "authentication",
+    "turbomodule"
+  ],
+  "license": "MIT",
+  "packageManager": "pnpm@11.11.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@eslint/compat": "^1.3.2",
+    "@eslint/eslintrc": "^3.3.1",
+    "@eslint/js": "^9.35.0",
+    "@react-native/babel-preset": "0.83.0",
+    "@react-native/eslint-config": "0.83.0",
+    "@types/jest": "^30.0.0",
+    "@types/react": "^19.2.10",
+    "@types/react-test-renderer": "^19",
+    "del-cli": "^6.0.0",
+    "eslint": "^9.35.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "jest": "^30.2.0",
+    "jest-environment-node": "^30.2.0",
+    "prettier": "^2.8.8",
+    "react": "19.2.0",
+    "react-native": "0.83.6",
+    "react-native-builder-bob": "^0.43.1",
+    "react-native-svg": "^15.12.1",
+    "react-test-renderer": "^19.2.0",
+    "ts-jest": "^29.4.6",
+    "typescript": "~5.9.2"
+  },
+  "peerDependencies": {
+    "expo": ">=55.0.0",
+    "react": "*",
+    "react-native": ">=0.83.0",
+    "react-native-svg": ">=15.0.0"
+  },
+  "peerDependenciesMeta": {
+    "expo": {
+      "optional": true
+    },
+    "react-native-svg": {
+      "optional": true
+    }
+  },
+  "react-native-builder-bob": {
+    "source": "src",
+    "output": "lib",
+    "targets": [
+      [
+        "module",
+        {
+          "esm": true
+        }
+      ],
+      [
+        "typescript",
+        {
+          "project": "tsconfig.build.json"
+        }
+      ]
+    ]
+  },
+  "codegenConfig": {
+    "name": "GcmLoginSpec",
+    "type": "modules",
+    "jsSrcsDir": "src",
+    "android": {
+      "javaPackageName": "com.googlecredentialmanagerlogin"
+    },
+    "ios": {
+      "modulesProvider": {
+        "GoogleCredentialManagerLogin": "GoogleCredentialManagerLogin"
+      }
+    }
+  },
+  "prettier": {
+    "quoteProps": "consistent",
+    "singleQuote": true,
+    "tabWidth": 2,
+    "trailingComma": "es5",
+    "useTabs": false
+  }
+}

@@ -1,0 +1,15 @@
+# Settings live here because pnpm 11 stopped reading the "pnpm" field in
+# package.json. No workspace is declared. Note that this file still makes the
+# repo root a pnpm workspace root for everything beneath it, which is why
+# example/ carries its own pnpm-workspace.yaml to install independently.
+#
+# Optional peers (expo, react-native-svg) are not installed on their own. pnpm 11
+# otherwise pulls `expo` into the root, at whatever the newest version is rather
+# than the one this React Native line pairs with. Everything the tests need is an
+# explicit devDependency.
+autoInstallPeers: false
+
+# unrs-resolver backs the ESLint import resolver. pnpm blocks build scripts by
+# default and then fails every script run until the build is allowed.
+allowBuilds:
+  unrs-resolver: true
