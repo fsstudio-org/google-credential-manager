@@ -5,6 +5,12 @@
 # completing a consent screen, which a runner cannot do, and putting an account's
 # credentials in CI secrets would break Google's terms and get it locked. Device
 # behaviour is verified by hand — see docs/manual-verification.md.
+#
+# Both native jobs build the example twice. `floor` is the oldest Expo SDK / React
+# Native the peerDependencies allow, so breaks in the oldest supported API show
+# up. `latest` upgrades the example to the newest Expo SDK first, so breaks in
+# newer React Native APIs show up too (0.86 once failed to compile code that was
+# fine on 0.83). A weekly run catches new releases without needing a commit.
 name: CI
 
 on:
@@ -12,6 +18,8 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -44,8 +52,12 @@ jobs:
       - run: pnpm build
 
   android:
-    name: Build Android
+    name: Build Android (${{ matrix.expo }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        expo: [floor, latest]
     steps:
       - uses: actions/checkout@v7
 
@@ -70,6 +82,14 @@ jobs:
         working-directory: example
         run: pnpm install --no-frozen-lockfile
 
+      # Only in this runner's copy of the example; nothing is committed.
+      - name: Upgrade example to the latest Expo SDK
+        if: matrix.expo == 'latest'
+        working-directory: example
+        run: |
+          pnpm add expo@latest
+          npx expo install --fix
+
       - name: Prebuild example
         working-directory: example
         env:
@@ -84,9 +104,13 @@ jobs:
         run: ./gradlew assembleDebug --no-daemon
 
   ios:
-    name: Build iOS
+    name: Build iOS (${{ matrix.expo }})
     runs-on: macos-latest
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        expo: [floor, latest]
     steps:
       - uses: actions/checkout@v7
 
@@ -102,6 +126,14 @@ jobs:
       - name: Install example dependencies
         working-directory: example
         run: pnpm install --no-frozen-lockfile
+
+      # Only in this runner's copy of the example; nothing is committed.
+      - name: Upgrade example to the latest Expo SDK
+        if: matrix.expo == 'latest'
+        working-directory: example
+        run: |
+          pnpm add expo@latest
+          npx expo install --fix
 
       # `--no-install` because prebuild reports a failed `pod install` as a warning
       # and carries on, which leaves no .xcworkspace and a misleading error later.
