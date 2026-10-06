@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-10-06
+
 ### Fixed
 
 - Android: a sign-in whose Google screen was left with Home or the app switcher
