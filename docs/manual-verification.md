@@ -212,6 +212,21 @@ Call `signIn()` and, while the sheet is on screen, trigger `signOut()`.
 | Expected | The `signIn()` promise **rejects `SIGN_IN_CANCELLED`**, and the user is not signed in afterwards |
 | Failure signal | A `signIn()` promise that never settles, or one that resolves after `signOut()` |
 
+### L — leave Google's add-account screen with Home (Android)
+
+On a device or emulator with **no Google account**, call `signIn()` so Google's
+add-account screen opens. Press Home, then return to the app.
+
+| | |
+|---|---|
+| Expected | About 2 s after returning, the `signIn()` promise **rejects `SIGN_IN_CANCELLED`** (logcat: `No Credential Manager callback 2000ms after returning`), and a second `signIn()` opens the screen again instead of failing `IN_PROGRESS` |
+| Failure signal | The promise never settles, or every later call rejects `IN_PROGRESS` until the app is killed |
+
+Also check the opposite: with an account present, complete a normal sign-in
+through the sheet. It must resolve, not reject `SIGN_IN_CANCELLED` (a real
+callback has to beat the grace). Not yet run on Android 11, which takes an older
+path inside Play services.
+
 ### K — `signInSilently()` with scopes that need consent
 
 Configure `scopes: ['https://www.googleapis.com/auth/drive.readonly']` (or

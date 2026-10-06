@@ -173,7 +173,10 @@ an effect that can re-run on render.
 
 ### SIGN_IN_CANCELLED
 
-**Both.** The user dismissed the sheet or chooser.
+**Both.** The user dismissed the sheet or chooser. On Android it is also what
+you get when the user left Google's screen (Home, app switcher) and came back
+and Android reported no result: the pending sign-in is cancelled about 2 s
+after the app returns, so the next `signIn()` is not blocked by `IN_PROGRESS`.
 
 Not a failure. Return quietly — no alert, no automatic retry.
 

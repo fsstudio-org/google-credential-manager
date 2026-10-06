@@ -5,6 +5,8 @@ import android.app.Activity
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.os.CancellationSignal
+import android.os.Handler
+import android.os.Looper
 import android.util.Base64
 import android.util.Log
 import androidx.core.content.ContextCompat
@@ -23,6 +25,7 @@ import androidx.credentials.exceptions.GetCredentialProviderConfigurationExcepti
 import androidx.credentials.exceptions.GetCredentialUnsupportedException
 import androidx.credentials.exceptions.NoCredentialException
 import com.facebook.react.bridge.ActivityEventListener
+import com.facebook.react.bridge.LifecycleEventListener
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.google.android.gms.auth.api.identity.AuthorizationRequest
@@ -44,7 +47,7 @@ import java.util.concurrent.atomic.AtomicReference
 
 class GoogleCredentialManagerLoginModule(
   reactContext: ReactApplicationContext
-) : NativeGoogleCredentialManagerLoginSpec(reactContext), ActivityEventListener {
+) : NativeGoogleCredentialManagerLoginSpec(reactContext), ActivityEventListener, LifecycleEventListener {
 
   private val credentialManager: CredentialManager = CredentialManager.create(reactContext)
 
@@ -87,8 +90,14 @@ class GoogleCredentialManagerLoginModule(
   /** At most one authorization runs at a time, including a consent screen on display. */
   private val activeAuthorization = AtomicReference<PendingAuthorization?>(null)
 
+  private val mainHandler = Handler(Looper.getMainLooper())
+
+  /** Armed on resume while a sign-in that left the app is pending; main thread only. */
+  private var resumeCheck: Runnable? = null
+
   init {
     reactContext.addActivityEventListener(this)
+    reactContext.addLifecycleEventListener(this)
   }
 
   /**
@@ -102,6 +111,10 @@ class GoogleCredentialManagerLoginModule(
 
     @Volatile
     var cancellationSignal: CancellationSignal? = null
+
+    /** The host app paused while this flow was pending: a Google screen took over. */
+    @Volatile
+    var leftApp = false
   }
 
   /**
@@ -707,6 +720,41 @@ class GoogleCredentialManagerLoginModule(
     // Both flows return via onActivityResult.
   }
 
+  override fun onHostPause() {
+    resumeCheck?.let(mainHandler::removeCallbacks)
+    resumeCheck = null
+    activeSignIn.get()?.leftApp = true
+  }
+
+  /**
+   * Credential Manager can drop a request without ever calling back: with no
+   * Google account, Google's add-account screen opens, and leaving it with Home
+   * and returning logs "Cancelled by user" in Play services while neither
+   * onResult nor onError fires. The flow would then hold [activeSignIn] until
+   * the app restarts, and every later call would fail IN_PROGRESS. A real
+   * callback follows a normal return within moments, so wait [RESUME_GRACE_MS]
+   * for it and treat silence as the user backing out.
+   */
+  override fun onHostResume() {
+    val flow = activeSignIn.get()?.takeIf { it.leftApp } ?: return
+    flow.leftApp = false
+    resumeCheck?.let(mainHandler::removeCallbacks)
+    val check = Runnable {
+      resumeCheck = null
+      // Identity check: a newer flow, or a settled one, is not ours to cancel.
+      if (activeSignIn.get() !== flow) return@Runnable
+      Log.w(TAG, "No Credential Manager callback ${RESUME_GRACE_MS}ms after returning to the app; cancelling sign-in")
+      cancelActiveSignIn()?.reject("SIGN_IN_CANCELLED", "Sign-in was cancelled: Google's screen was left without a result")
+    }
+    resumeCheck = check
+    mainHandler.postDelayed(check, RESUME_GRACE_MS)
+  }
+
+  override fun onHostDestroy() {
+    resumeCheck?.let(mainHandler::removeCallbacks)
+    resumeCheck = null
+  }
+
   /**
    * Settles whatever is in flight, so a pending signIn() cannot resolve after
    * the session it would have created was ended, and a consent result that
@@ -856,6 +904,9 @@ class GoogleCredentialManagerLoginModule(
 
   override fun invalidate() {
     reactApplicationContext.removeActivityEventListener(this)
+    reactApplicationContext.removeLifecycleEventListener(this)
+    resumeCheck?.let(mainHandler::removeCallbacks)
+    resumeCheck = null
     cancelActiveSignIn()?.reject("SIGN_IN_INTERRUPTED", "The React context was torn down")
     activeAuthorization.get()?.onError("SIGN_IN_INTERRUPTED", "The React context was torn down", null)
     super.invalidate()
@@ -888,6 +939,9 @@ class GoogleCredentialManagerLoginModule(
     const val NAME = NativeGoogleCredentialManagerLoginSpec.NAME
     private const val TAG = "GoogleCredentialMgr"
     private const val RC_AUTHORIZE = 0x6743
+
+    /** How long a late Credential Manager callback has to win after the app returns. An estimate, not measured. */
+    private const val RESUME_GRACE_MS = 2000L
     private const val GOOGLE_ACCOUNT_TYPE = "com.google"
 
     /** Mirrors EXPECTED_CODES in src/devLog.ts. */

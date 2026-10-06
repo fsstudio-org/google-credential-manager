@@ -6,6 +6,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Android: a sign-in whose Google screen was left with Home or the app switcher
+  could never finish. With no Google account on the device, Credential Manager
+  opens the add-account screen; leaving it and returning made Play services log
+  "Cancelled by user" but neither callback ever fired, so the sign-in slot stayed
+  taken and every later call failed `IN_PROGRESS` until the app was killed. When
+  the app returns to the foreground with a sign-in still pending and no callback
+  arrives within 2 s, the sign-in is now cancelled and rejects `SIGN_IN_CANCELLED`.
+
 ## [0.1.3] - 2026-10-01
 
 ### Fixed
