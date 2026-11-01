@@ -89,6 +89,7 @@ The same test also **regex-scans the Kotlin and Objective-C sources** for litera
 
 ## Conventions / gotchas
 
+- **Always get the maintainer's approval before committing.** Show what will be committed (the `git status` / diff summary and the proposed message) and wait for an explicit go-ahead; approval to make a change is not approval to commit it, and approval of one commit does not cover the next. The same applies to pushing.
 - Native dependency pins live in library source, not consumer config: `androidx.credentials:1.6.0`, `googleid:1.1.1` and `play-services-auth:21.4.0` in [android/build.gradle](android/build.gradle); `GoogleSignIn ~> 9.0` in the [podspec](GoogleCredentialManagerLogin.podspec) (the 9.0 API is required).
 - Bumping the `package.json` `version` drives the podspec version, the podspec's git tag (`v<version>`) and the config plugin's run-once version. The podspec also derives its author and git URL from `package.json`. Release steps are in [CONTRIBUTING.md](CONTRIBUTING.md).
 - Consumers read the emitted `.d.ts` under their own compiler flags and `lib`, so keep the public types free of things stricter settings reject (nothing that needs a newer `lib` than ES2019, no `undefined` assigned to optional properties). Nothing in CI checks that. Because the build is ESM, Jest inside `node_modules` needs the package allow-listed for transform; the README documents that and how to mock it, and note its `exports` map blocks deep imports, so the internal native-module file cannot be mocked by path.
