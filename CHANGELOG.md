@@ -6,6 +6,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Package description reworded to "Google Sign In for React Native and Expo.
+  Google login with Android Credential Manager and iOS GoogleSignIn SDK, using
+  one API." (also the podspec summary), and the `google-signin` and
+  `google-login` keywords were added, for discoverability on npm and
+  reactnative.directory.
+
 ## [0.1.4] - 2026-10-06
 
 ### Fixed
